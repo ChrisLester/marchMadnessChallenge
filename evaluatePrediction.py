@@ -42,9 +42,10 @@ def main(options):
     
   h_outcome = TH1F('h_outcome','',2,-0.5,1.5)  
   
+  seasons = []
   outcomes    = []
-  predictions = []  
-    
+  predictions = []    
+   
   with open(input_file,'r') as f:     
     next(f)
     for line in f:
@@ -58,7 +59,7 @@ def main(options):
       team1  = game_id[2:5]	 
       team2  = game_id[6:9]	 
       #print game_id, season, team1, team2
-
+            
       sel_season = '(season == \"'+season+'\")' 
       sel_teams  = '(((wteam=='+team1+')&&(lteam=='+team2+')) || ((wteam=='+team2+')&&(lteam=='+team1+')))'
       cut_playin = '(daynum>=136)'
@@ -71,15 +72,26 @@ def main(options):
         print 'ERROR: Found',n_games,'matching game_id',game_id	 
         continue
       game_outcome = h_outcome[2]	
-      
-      outcomes.append(game_outcome)
-      predictions.append(prediction)
-      
-  score = llfun(outcomes, predictions)
 
-  print 'Found',len(outcomes),'games'
+      if season in seasons:
+        season_index = seasons.index(season)
+	outcomes[season_index].append(game_outcome)
+	predictions[season_index].append(prediction)
+      else:
+        seasons.append(season)
+        outcomes.append( [game_outcome] )
+        predictions.append( [prediction] )
+  
+  scores  = [] 
+  print 'Season\tScore'
   print '---------------------'
-  print 'Score = ', score
+  for i in range(len(seasons)):          
+    scores.append( llfun(outcomes[i], predictions[i]) )
+    print seasons[i],'\t',scores[i]
+      
+  print '---------------------'
+  print 'Average Score = ', sp.average(scores)
+  print 'Variance = ', sp.var(scores)
   print '---------------------'
 
   return
