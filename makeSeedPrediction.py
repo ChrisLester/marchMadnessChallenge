@@ -9,8 +9,9 @@ import scipy as sp
 from ROOT import *
 from optparse import OptionParser
 
-tourney_seed_file = 'training_inputs/tourney_seeds.csv'
-input_file   = 'submissions/sample_submission.csv'
+input_file   = 'training_inputs/tourney_seeds.csv'
+#input_file   = 'submissions/sample_submission.csv'
+#input_file   = 'training_input/sample_submission.csv'
 
 alpha = 0.03
 
@@ -33,46 +34,63 @@ def main(options):
   
   outcomes    = []
   predictions = []  
-  
-  fout = open('submissions/seed_submission.csv','w')
-      
+        
+  seasons = []
+  teams_season = []
+  seeds_season = []
   with open(input_file,'r') as f:     
     next(f)
     for line in f:
       tokens = line.split(',')
-      if not len(tokens) == 2: continue
-      
-      game_id    = tokens[0]
+      if not len(tokens) == 3: continue
  
-      season = game_id[0]
-      team1  = int(game_id[2:5])	 
-      team2  = int(game_id[6:9])	 
+      season = tokens[0]
+      seed   = int(tokens[1][1:3])	 
+      team   = int(tokens[2])	 
       #print game_id, season, team1, team2
-      
-      seed_team1 = Seed(season, team1)
-      seed_team2 = Seed(season, team2)
-      if seed_team1 == -1 or seed_team2 == -1:
-        print"ERROR: seed not found",season, team1, seed_team1, team2, seed_team2
+      if season not in seasons:
+        seasons.append(season)
+	teams_season.append( [team] )
+	seeds_season.append( [seed] )
+      else:
+        index = seasons.index(season)
+	teams_season[index].append(team)
+	seeds_season[index].append(seed)
+
+  fout = open('submissions/histseed_allseasons_submission.csv','w')
+  for i,season in enumerate(seasons):
+    for t1,team1 in enumerate(teams_season[i]):
+      for t2,team2 in enumerate(teams_season[i]):
+	if (team1 > team2): continue
 	
-      prediction = 0.5 + alpha*(seed_team2 - seed_team1)
+        #make prediction
+	#prediction = SimpleSeedPrediction(seeds_season[i][t1], seeds_season[i][t2])
+        prediction = HistSeedPrediction(season,seeds_season[i][t1], seeds_season[i][t2])
+
+        #bound prediction
+	prediction = min(0.999, prediction)
+        prediction = max(0.001, prediction)
       
-      entry = game_id+','+str(prediction)+'\n'
+        entry = season+'_'+str(team1)+'_'+str(team2)+','+str(prediction)+'\n'
       
-      fout.write(entry)
+        fout.write(entry)
       
   fout.close()
   return
   
+def SimpleSeedPrediction(seed1, seed2):
+  return 0.5 + alpha*(seed2-seed1)
 
-def llfun(act, pred):
-  epsilon = 1e-15
-  pred = sp.maximum(epsilon, pred)
-  pred = sp.minimum(1-epsilon, pred)
-  ll = sum(act*sp.log(pred) + sp.subtract(1,act)*sp.log(sp.subtract(1,pred)))
-  ll = ll * -1.0/len(act)
-  return ll
-
-
+def HistSeedPrediction(season, seed1, seed2):
+  
+  seed_prob_file  = TFile('seed_probabilities.root','READ')
+  
+  if seed_prob_file.Get('h_games_played_'+season).GetBinContent(seed1, seed2) >= 10:
+    return seed_prob_file.Get('h_seed_winprob_'+season).GetBinContent(seed1, seed2)
+  else:  
+    return SimpleSeedPrediction(seed1,seed2)
+    
+    
 def Seed(season, team):
 
   with open(tourney_seed_file) as f:

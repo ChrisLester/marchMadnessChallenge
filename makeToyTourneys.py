@@ -24,7 +24,7 @@ def ParseOptions() :
 
     parser = OptionParser(usage='python makeToyTourneys.py -n n_toys')
     
-    parser.add_option('-n', dest='n_toys', default=10, 
+    parser.add_option('-n', dest='n_toys', default=1000, 
             help='number of toys to throw' )
     
     return parser.parse_args()
@@ -40,6 +40,7 @@ def main(options):
   fout = open('toy_tourneys.csv','w')
       
   for i in range(ntoys):
+    if i%100==0: print 'Toy',i,'/',ntoys
     makeToyTourney(i, fout)
       
   fout.close()
@@ -56,11 +57,11 @@ def makeToyTourney(season, fout):
       matchups_r1.append( [team_lowseed,team_highseed] )
   
   #run the games
-  runToy(season,matchups_r1, fout)
+  runTourney(season,matchups_r1, fout)
   
   return      
 
-def runToy(season, games, fout):
+def runTourney(season, games, fout):
 
   if (len(games) < 1): return
   
@@ -69,7 +70,7 @@ def runToy(season, games, fout):
     if team[0] == 0 or team[1] == 0: return
         
     #simple delta seed prob model
-    prob = 0.50+0.03*(Seed(team[1])-Seed(team[0]))    
+    prob = 0.50+alpha*(Seed(team[1])-Seed(team[0]))    
     
     rnum = random.random()    
     outcome = int(rnum <= prob)
@@ -84,7 +85,7 @@ def runToy(season, games, fout):
     else:
       next_round_games[-1][1] = winner 
       
-  runToy(season,next_round_games,fout)
+  runTourney(season,next_round_games,fout)
   
   return  
 
