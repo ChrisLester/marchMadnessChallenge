@@ -31,6 +31,9 @@ out_team_tree.Branch('rms_scorediff',rms_scorediff, 'rms_scorediff/D')
 season = array( 'c', 'A\0')
 out_team_tree.Branch('season', season, 'season/C')
 
+season_int = array( 'i', [0])
+out_team_tree.Branch('season_int', season_int, 'season_int/I')
+
 #htemp=TH1F('htemp','',2,-0.5,1.5)
 hscorediff=TH1F('hscorediff','',200,-100,100)
 
@@ -46,7 +49,7 @@ for i in range(n_teams):
   
   if not i%50: print 'Processing team %d/%d'%(i,n_teams)
     
-  for ssn in seasons:
+  for i,ssn in enumerate(seasons):
   
     #if not i%10000: print 'Processing entry %d/%d'%(i,n_entries)
 
@@ -71,13 +74,16 @@ for i in range(n_teams):
     ngameswon    = hscorediff.Integral(101,200)
 
     season[0]  		= ssn[0]
+    season_int[0]	= i
     winfrac[0]		= ngameswon / ngamesplayed
     avg_scorediff[0] 	= hscorediff.GetMean()
     rms_scorediff[0] 	= hscorediff.GetRMS()
     
     out_team_tree.Fill()
 
-#out_team_tree.BuildIndex('team','season')
+print "Building index"
+out_team_tree.BuildIndex('team','season_int')
+print "Done"
 
 out_team_tree.Write()
 fout.Close()
