@@ -4,18 +4,18 @@ import os
 from ROOT import *
 from optparse import OptionParser
 
-historyFileName = 'mm_input_modified.root'
-tourneyFileName = 'mm_input.root'
+historyFileName = 'rootFiles/mm_input_modified.root'
+tourneyFileName = 'rootFiles/mm_input.root'
 
 #-----------------------------------------------------------------------------------------------------        
 def ParseOptions() :
 
     parser = OptionParser(usage='python evaluatePrediction.py --file filename')
-    
+
     parser.add_option('--mvaWeight', dest='mvaWeight', default=None) 
     parser.add_option('--mvaRoot'  , dest='mvaRoot', default=None)
     parser.add_option('--season'   , dest='season', default=None) 
-    parser.add_option('-out', dest='outName', default="probability.csv") 
+    parser.add_option('--out', dest='outName', default="probability.csv") 
     
     return parser.parse_args()
 
@@ -26,7 +26,7 @@ def evaluateProbability(sigHist,bkgHist,mvaOutput):
     bkgLL = bkgHist.GetBinContent(bkgHist.FindBin(mvaOutput))
 
     # get probability of being a winner 
-    prob = 0.5 
+    prob = 0.5  
     if not sigLL + bkgLL == 0:
         prob = sigLL/(sigLL+bkgLL) 
 
@@ -37,19 +37,18 @@ def evaluateProbability(sigHist,bkgHist,mvaOutput):
     return prob 
 
 #-----------------------------------------------------------------------------------------------------        
-def generateCSV(tourneyTree, historyTree, options, outName):
+def generateCSV(tourneyTree, historyTree, options):
     # loop over seed tree, twice, find all possible pairings, no duplicate pairing
 
     # get reference hists
     referenceFile = TFile(options[0].mvaRoot) 
-    bkgRef = referenceFile.Get("Method_BDT/BDT/MVA_BDT_S")
-    sigRef = referenceFile.Get("Method_BDT/BDT/MVA_BDT_B")
+    sigRef = referenceFile.Get("Method_BDT/BDT/MVA_BDT_S")
+    bkgRef = referenceFile.Get("Method_BDT/BDT/MVA_BDT_B")
     
     # get MVA Reader - from http://aholzner.wordpress.com/2011/08/27/a-tmva-example-in-pyroot/
-    reader = ROOT.TMVA.Reader()
-    bdtVars = []
-    var1 = array.array('d',[0]) ; reader.AddVariable("m_seed",var1)
-    var2 = array.array('d',[0]) ; reader.AddVariable("s_seed",var2)
+    reader = TMVA.Reader()
+    var1 = array.array('f',[0]) ; reader.AddVariable("m_seed",var1)
+    var2 = array.array('f',[0]) ; reader.AddVariable("o_seed",var2)
     var3 = array.array('f',[0]) ; reader.AddVariable("m_avg_scorediff",var3)
     var4 = array.array('f',[0]) ; reader.AddVariable("o_avg_scorediff",var4)
     var5 = array.array('f',[0]) ; reader.AddVariable("m_winfrac",var5)
@@ -59,27 +58,30 @@ def generateCSV(tourneyTree, historyTree, options, outName):
 
     # open csv 
 
-    outFile = open(outName, 'a') 
+    outFile = open(options[0].outName, 'a') 
     iCount = 0
+    nSeeds = tourneyTree.GetEntries()
     for i in tourneyTree:
+
         iCount += 1
         jCount = 0
-        if not i.season.count(options[0].season): continue
+        if not iCount%50: print 'Processing tourney game %d/%d'%(iCount,nSeeds)
+       
+        if not options[0].season.count(i.season[0]): continue
         
         team1 = i.team 
         seed1 = int(''.join(c for c in i.seed if c in '1234567890')) 
-        season1 = i.season 
+        season1 = i.season[0] 
 
         for j in tourneyTree:
             jCount += 1
-            if not i.season.count(season): continue
-            if jCount < = iCount: continue
+            if not options[0].season.count(j.season[0]): continue
+            if jCount <= iCount: continue
 
             season2 = j.season
 
             if not i.season == j.season: continue #only teams from same season have possibility of playing
 
-            
             team2 = j.team
             seed2 = int(''.join(c for c in j.seed if c in '1234567890')) 
            
@@ -103,7 +105,7 @@ def generateCSV(tourneyTree, historyTree, options, outName):
                 if entry.team == team2:
                     foundTeam2 = True 
                     team2win   = entry.winfrac
-                    team2avg   = entry.avg
+                    team2avg   = entry.avg_scorediff
                 if foundTeam1 and foundTeam2: break 
 
             var1[0] = seed1
@@ -117,7 +119,7 @@ def generateCSV(tourneyTree, historyTree, options, outName):
             
             prob = evaluateProbability(sigRef, bkgRef, output)
 
-            outFile.write(','.join(['_'.join([j.season, team1, team2]),prob])+'\n')
+            outFile.write(','.join(['_'.join([j.season[0], str(team1), str(team2)]),str(prob)])+'\n')
 
     outFile.close() 
 #-----------------------------------------------------------------------------------------------------        
@@ -129,10 +131,10 @@ def main(options):
     historyTree = historyFile.Get("teams")
     
     tourneyFile = TFile(tourneyFileName) 
-    tourneyTree = TFile("tourney_seeds" ) 
+    tourneyTree = tourneyFile.Get("tourney_seeds" ) 
 
     # generate CSV
-    generateCSV(tourneyTree, historyTree, options, outFile)
+    generateCSV(tourneyTree, historyTree, options)
 
 if __name__ == '__main__' :
     main(ParseOptions())
