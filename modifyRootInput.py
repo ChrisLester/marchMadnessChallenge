@@ -154,6 +154,8 @@ for i in range(n_teams):
   avg_opp_score_against[0] *= 1./n_opponents if n_opponents != 0 else 0
  
   out_team_tree.Fill()
+
+out_team_tree.BuildIndex('team','season_int')
   
 out_team_tree.Write()
 fout.Close()
