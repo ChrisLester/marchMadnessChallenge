@@ -42,8 +42,8 @@ season_int = array( 'i', [0])
 temp_team_tree.Branch('season_int', season_int, 'season_int/I')
 
 #htemp=TH1F('htemp','',2,-0.5,1.5)
-hscorediff=TH1F('hscorediff','',200,-100,100)
-hscore=TH2F('hscore','',150,0,150,150,0,150)
+#hscorediff=TH1F('hscorediff','',200,-100,100)
+#hscore=TH2F('hscore','',150,0,150,150,0,150)
 
 # loop over events and calculate new variables
 seasons = map(chr, range(65, 83)) #hardcoded list of seasons from A to R
@@ -67,10 +67,7 @@ for i in range(n_teams):
 
     game_tree.Draw('>>game_list',sel_season+'&&'+sel_team_all)
     game_list = gDirectory.Get('game_list')
-    
-    var_scorediff = "(wscore - lscore)*(+1*(wteam=="+str(team_tree.team)+") + -1*(lteam=="+str(team_tree.team)+"))"
-    game_tree.Draw(var_scorediff+">>hscorediff",sel_season+'&&'+sel_team_all)  
-    
+        
     ngamesplayed = game_list.GetN()
     if (ngamesplayed==0): continue
     current_team   = team_tree.team
@@ -82,7 +79,7 @@ for i in range(n_teams):
     for j in range(ngamesplayed):
       game_tree.GetEntry(game_list.GetEntry(j))
       
-      won = game_tree.wteam == current_team
+      won = (game_tree.wteam == current_team)
       if (won): ngameswon += 1 
       scores_for.append( game_tree.wscore if won else game_tree.lscore)
       scores_against.append( game_tree.lscore if won else game_tree.wscore)
@@ -93,7 +90,7 @@ for i in range(n_teams):
     
     season[0]  		= ssn[0]
     season_int[0]	= i
-    winfrac[0]		= ngameswon / ngamesplayed
+    winfrac[0]		= float(ngameswon) / ngamesplayed
     avg_scorediff[0] 	= sp.average(score_diffs)
     rms_scorediff[0] 	= sp.sqrt(1./ngamesplayed*sum((sd-avg_scorediff[0])**2 for sd in score_diffs))
     
@@ -102,7 +99,6 @@ for i in range(n_teams):
 print "Building index"
 temp_team_tree.BuildIndex('team','season_int')
 print "Done"
-
 
 out_team_tree = temp_team_tree.CloneTree(0)
 
@@ -130,7 +126,7 @@ for i in range(n_teams):
   avg_opp_score_for[0] = 0
   avg_opp_score_against[0] = 0
   ngames = game_list.GetN()
-  current_team = temp_team_tree.team
+  current_team   = temp_team_tree.team
   current_season = temp_team_tree.season_int
   
   if (ngames==0): continue
@@ -153,6 +149,8 @@ for i in range(n_teams):
   avg_opp_score_for[0] *= 1./n_opponents if n_opponents != 0 else 0
   avg_opp_score_against[0] *= 1./n_opponents if n_opponents != 0 else 0
  
+  temp_team_tree.GetEntry(i)
+
   out_team_tree.Fill()
 
 out_team_tree.BuildIndex('team','season_int')
