@@ -7,20 +7,6 @@ if not sys.argv.count('-i') and not sys.argv.count('-b'):
 from array import array
 from ROOT import *
 
-def Seed(season, team):
-
-  with open('training_inputs/tourney_seeds.csv') as f:
-    next(f)
-    for line in f:
-      tokens = line.split(',')
-      #print tokens
-      if not len(tokens) == 3: continue
-      if not tokens[0] == season[0]: continue
-      if not int(tokens[2][0:3]) == team: continue
-      return int(tokens[1][1:3])
-  print 'Seed Error:',season,team
-  return -1  
-
 seasons = map(chr, range(65, 84)) #hardcoded list of seasons from A to S
 
 #get input dataset of tourney results
@@ -111,32 +97,30 @@ for game in tourney_tree:
       
     # grab team performances from team tree
     team1[0] = min(game.wteam, game.lteam)        
-    found = (team_tree.GetEntryWithIndex( team1[0], season_int[0]) > 0)
-    if not found:
+    if not (team_tree.GetEntryWithIndex( team1[0], season_int[0]) > 0):
       print "ERROR: Did not find:", team1[0], game.season[0]
       continue
-    seed1[0] = Seed(game.season[0], team1[0]) 
+    seed1[0] = team_tree.seed
     winfrac1[0] = team_tree.winfrac
     avg_scorediff1[0] = team_tree.avg_scorediff
     rms_scorediff1[0] = team_tree.rms_scorediff
     avg_score_for1[0] = team_tree.avg_score_for
     avg_score_against1[0] = team_tree.avg_score_against
     avg_opp_score_for1[0] = team_tree.avg_opp_score_for
-    avg_opp_score_against1[0] = team_tree.avg_opp_score_for
+    avg_opp_score_against1[0] = team_tree.avg_opp_score_against
     
     team2[0] = max(game.wteam, game.lteam)        
-    found = (team_tree.GetEntryWithIndex( team2[0], season_int[0]) > 0)
-    if not found:
-      print "ERROR: Did not find:", team2[0], game.season
+    if not (team_tree.GetEntryWithIndex( team2[0], season_int[0]) > 0):
+      print "ERROR: Did not find:", team2[0], game.season[0]
       continue
-    seed2[0] = Seed(game.season[0], team2[0]) 
+    seed2[0] = team_tree.seed
     winfrac2[0] = team_tree.winfrac
     avg_scorediff2[0] = team_tree.avg_scorediff
     rms_scorediff2[0] = team_tree.rms_scorediff
     avg_score_for2[0] = team_tree.avg_score_for
     avg_score_against2[0] = team_tree.avg_score_against
     avg_opp_score_for2[0] = team_tree.avg_opp_score_for
-    avg_opp_score_against2[0] = team_tree.avg_opp_score_for
+    avg_opp_score_against2[0] = team_tree.avg_opp_score_against
 
     game_outcome[0] = (team1[0] == game.wteam)
     

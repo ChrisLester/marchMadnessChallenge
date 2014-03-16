@@ -8,6 +8,20 @@ from array import array
 from ROOT import *
 import scipy as sp
 
+
+def Seed(season, team):
+
+  with open('training_inputs/tourney_seeds.csv') as f:
+    next(f)
+    for line in f:
+      tokens = line.split(',')
+      #print tokens
+      if not len(tokens) == 3: continue
+      if not tokens[0] == season: continue
+      if not int(tokens[2][0:3]) == team: continue
+      return int(tokens[1][1:3])
+  return -1    
+
 #get input
 fin = TFile('mm_input.root','READ')
 game_tree = fin.Get('regular_season_results')
@@ -41,9 +55,9 @@ temp_team_tree.Branch('season', season, 'season/C')
 season_int = array( 'i', [0])
 temp_team_tree.Branch('season_int', season_int, 'season_int/I')
 
-#htemp=TH1F('htemp','',2,-0.5,1.5)
-#hscorediff=TH1F('hscorediff','',200,-100,100)
-#hscore=TH2F('hscore','',150,0,150,150,0,150)
+seed = array('i', [0])
+temp_team_tree.Branch('seed', seed, 'seed/I')
+
 
 # loop over events and calculate new variables
 seasons = map(chr, range(65, 83)) #hardcoded list of seasons from A to R
@@ -93,6 +107,8 @@ for i in range(n_teams):
     winfrac[0]		= float(ngameswon) / ngamesplayed
     avg_scorediff[0] 	= sp.average(score_diffs)
     rms_scorediff[0] 	= sp.sqrt(1./ngamesplayed*sum((sd-avg_scorediff[0])**2 for sd in score_diffs))
+    
+    seed[0] 		= Seed(ssn[0], team_tree.team)
     
     temp_team_tree.Fill()
 
