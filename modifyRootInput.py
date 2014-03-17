@@ -60,7 +60,7 @@ temp_team_tree.Branch('seed', seed, 'seed/I')
 
 
 # loop over events and calculate new variables
-seasons = map(chr, range(65, 83)) #hardcoded list of seasons from A to R
+seasons = map(chr, range(65, 84)) #hardcoded list of seasons from A to S
 n_seasons = len(seasons) 
 
 n_teams = team_tree.GetEntries()
