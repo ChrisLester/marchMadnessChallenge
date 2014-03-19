@@ -10,9 +10,13 @@ from ROOT import *
 from optparse import OptionParser
 import array
 
+seed_prob_file  = TFile('seed_probabilities.root','READ')
 
 input_file   = 'training_inputs/tourney_seeds.csv'
 teams_file_name   = 'mm_input_modified.root'
+
+teams_file = TFile(teams_file_name,'READ')
+teams = teams_file.Get("teams")
 
 alpha = 0.03
 
@@ -29,6 +33,7 @@ var9 = array.array('f',[0]) ;
 var10 = array.array('f',[0]) ;
 var11 = array.array('f',[0]) ;
 var12 = array.array('f',[0]) ;
+var13 = array.array('f',[0]) ;
 
 #-----------------------------------------------------------------------------------------------------        
 def ParseOptions() :
@@ -81,7 +86,7 @@ def main(options):
   reader = TMVA.Reader()
   reader.AddSpectator("season", var0)
 
-  #reader.AddVariable("seed1-seed2",var1)
+  #reader.AddVariable("seed1-seed2",	var13)
   reader.AddVariable("seed1",		var1)
   reader.AddVariable("seed2",		var2)
   reader.AddVariable("winfrac1",	var3)
@@ -96,9 +101,9 @@ def main(options):
   reader.AddVariable('avg_opp_score_against2',var12)
   
   for season in seasons:
-    #reader.BookMVA('BDT_'+season,'./weights/regressionMVA_'+season+'_BDT_MaxDepth4.weights.xml')
     #reader.BookMVA('BDT_'+season,'./weights/regressionMVA_'+season+'_BDT.weights.xml')
     reader.BookMVA('LD_'+season,'./weights/regressionMVA_'+season+'_LD.weights.xml')
+    #reader.BookMVA('BDT_'+season,'./weights/regressionMVA_'+season+'_BDT_MaxDepth4.weights.xml')
 
   fout = open('submissions/submission.csv','w')
   for i,season in enumerate(seasons):
@@ -128,22 +133,27 @@ def SimpleSeedPrediction(seed1, seed2):
   return 0.5 + alpha*(seed2-seed1)
 
 def HistSeedPrediction(season, seed1, seed2):
-  
-  seed_prob_file  = TFile('seed_probabilities.root','READ')
-  
+    
   if seed_prob_file.Get('h_games_played_'+season).GetBinContent(seed1, seed2) >= 10:
     return seed_prob_file.Get('h_seed_winprob_'+season).GetBinContent(seed1, seed2)
   else:  
     return SimpleSeedPrediction(seed1,seed2)
-    
+
 def MVAPrediction(season, season_i, team1, team2, reader, method):
   
-  teams_file = TFile(teams_file_name,'READ')
-  teams = teams_file.Get("teams")
+  if not FillVariables(season_i, team1, team2):
+     print "ERROR: Unable to fill variables"
+     return 0.5
+        
+  output = reader.EvaluateMVA(method+'_'+season) 
+  
+  return output
+      
+def FillVariables(season_i, team1, team2):
   
   if not (teams.GetEntryWithIndex(team1, season_i) > 0):
-    print "Error: Team not found:",team1, season_i 
-    return
+    print "Error: Team not found:",team1,'season', season_i 
+    return 0
 
   team1_seed 			= teams.seed
   team1_avg_scorediff 		= teams.avg_scorediff
@@ -153,8 +163,8 @@ def MVAPrediction(season, season_i, team1, team2, reader, method):
   team1_avg_opp_score_against 	= teams.avg_opp_score_against 
   
   if not (teams.GetEntryWithIndex(team2, season_i) > 0):
-    print "Error: Team not found:",team2, season_i
-    return 
+    print "Error: Team not found:",team2,'season', season_i
+    return 0
 
   team2_seed 			= teams.seed
   team2_avg_scorediff 		= teams.avg_scorediff
@@ -164,25 +174,23 @@ def MVAPrediction(season, season_i, team1, team2, reader, method):
   team2_avg_opp_score_against 	= teams.winfrac  
 
    
-  var0[0] = season_i   
-  
-  var1[0] = team1_seed
-  var2[0] = team2_seed
-  var3[0] = team1_winfrac  
-  var4[0] = team2_winfrac  
-  var5[0] = team1_avg_scorediff
-  var6[0] = team2_avg_scorediff
-  var7[0] = team1_rms_scorediff 
-  var8[0] = team2_rms_scorediff  
-  var9[0] = team1_avg_opp_score_for
+  var0[0]  = season_i	  
+  var1[0]  = team1_seed
+  var2[0]  = team2_seed
+  var3[0]  = team1_winfrac  
+  var4[0]  = team2_winfrac  
+  var5[0]  = team1_avg_scorediff
+  var6[0]  = team2_avg_scorediff
+  var7[0]  = team1_rms_scorediff 
+  var8[0]  = team2_rms_scorediff  
+  var9[0]  = team1_avg_opp_score_for
   var10[0] = team2_avg_opp_score_for 
   var11[0] = team1_avg_opp_score_against 
   var12[0] = team2_avg_opp_score_against  
-    
-  output = reader.EvaluateMVA(method+'_'+season) 
-  
-  return output
+  var13[0] = team1_seed - team2_seed
 
+  return 1
+  
 def Seed(season, team):
 
   with open(tourney_seed_file) as f:
