@@ -34,6 +34,11 @@ var10 = array.array('f',[0]) ;
 var11 = array.array('f',[0]) ;
 var12 = array.array('f',[0]) ;
 var13 = array.array('f',[0]) ;
+var14 = array.array('f',[0]) ;
+var15 = array.array('f',[0]) ;
+var16 = array.array('f',[0]) ;
+var17 = array.array('f',[0]) ;
+
 
 #-----------------------------------------------------------------------------------------------------        
 def ParseOptions() :
@@ -86,37 +91,41 @@ def main(options):
   reader = TMVA.Reader()
   reader.AddSpectator("season", var0)
 
+  reader.AddVariable("seed_prob",			var14)
+  reader.AddVariable("winfrac1-winfrac2",		var15)
+  reader.AddVariable("avg_scorediff1-avg_scorediff2",	var16)
   #reader.AddVariable("seed1-seed2",	var13)
-  reader.AddVariable("seed1",		var1)
-  reader.AddVariable("seed2",		var2)
-  reader.AddVariable("winfrac1",	var3)
-  reader.AddVariable("winfrac2",	var4)
-  reader.AddVariable("avg_scorediff1",	var5)
-  reader.AddVariable("avg_scorediff2",	var6)
-  reader.AddVariable('rms_scorediff1', var7),
-  reader.AddVariable('rms_scorediff2', var8),
-  reader.AddVariable('avg_opp_score_for1',var9),
-  reader.AddVariable('avg_opp_score_for2',var10),
-  reader.AddVariable('avg_opp_score_against1',var11),
-  reader.AddVariable('avg_opp_score_against2',var12)
+  #reader.AddVariable("seed1",		var1)
+  #reader.AddVariable("seed2",		var2)
+  #reader.AddVariable("winfrac1",	var3)
+  #reader.AddVariable("winfrac2",	var4)
+  #reader.AddVariable("avg_scorediff1",	var5)
+  #reader.AddVariable("avg_scorediff2",	var6)
+  #reader.AddVariable('rms_scorediff1', var7),
+  #reader.AddVariable('rms_scorediff2', var8),
+  #reader.AddVariable('avg_opp_score_for1',var9),
+  #reader.AddVariable('avg_opp_score_for2',var10),
+  #reader.AddVariable('avg_opp_score_against1',var11),
+  #reader.AddVariable('avg_opp_score_against2',var12)
   
-  for season in seasons:
+  #for season in seasons:
     #reader.BookMVA('BDT_'+season,'./weights/regressionMVA_'+season+'_BDT.weights.xml')
-    reader.BookMVA('LD_'+season,'./weights/regressionMVA_'+season+'_LD.weights.xml')
+    #reader.BookMVA('LD_'+season,'./weights/regressionMVA_'+season+'_LD.weights.xml')
     #reader.BookMVA('BDT_'+season,'./weights/regressionMVA_'+season+'_BDT_MaxDepth4.weights.xml')
 
   fout = open('submissions/submission.csv','w')
+  fout.write('id,pred\n')
   for i,season in enumerate(seasons):
     print 'Predicting season', season 
     for t1,team1 in enumerate(teams_season[i]):
       for t2,team2 in enumerate(teams_season[i]):
-	if (team1 > team2): continue
+	if (team1 >= team2): continue
 	
         #make prediction
 	#prediction = SimpleSeedPrediction(seeds_season[i][t1], seeds_season[i][t2])
-        #prediction = HistSeedPrediction(season,seeds_season[i][t1], seeds_season[i][t2])
+        prediction = HistSeedPrediction(season,seeds_season[i][t1], seeds_season[i][t2])
         #prediction = MVAPrediction(season, i, team1, team2, reader, 'BDT')
-        prediction = MVAPrediction(season, i, team1, team2, reader, 'LD')
+        #prediction = MVAPrediction(season, i, team1, team2, reader, 'LD')
 	
         #bound prediction
 	prediction = min(0.999, prediction)
@@ -141,7 +150,7 @@ def HistSeedPrediction(season, seed1, seed2):
 
 def MVAPrediction(season, season_i, team1, team2, reader, method):
   
-  if not FillVariables(season_i, team1, team2):
+  if not FillVariables(season, season_i, team1, team2):
      print "ERROR: Unable to fill variables"
      return 0.5
         
@@ -149,7 +158,7 @@ def MVAPrediction(season, season_i, team1, team2, reader, method):
   
   return output
       
-def FillVariables(season_i, team1, team2):
+def FillVariables(season, season_i, team1, team2):
   
   if not (teams.GetEntryWithIndex(team1, season_i) > 0):
     print "Error: Team not found:",team1,'season', season_i 
@@ -173,6 +182,8 @@ def FillVariables(season_i, team1, team2):
   team2_avg_opp_score_for     	= teams.winfrac  
   team2_avg_opp_score_against 	= teams.winfrac  
 
+  
+  seed_prob = HistSeedPrediction(season, team1_seed, team2_seed)
    
   var0[0]  = season_i	  
   var1[0]  = team1_seed
@@ -188,7 +199,12 @@ def FillVariables(season_i, team1, team2):
   var11[0] = team1_avg_opp_score_against 
   var12[0] = team2_avg_opp_score_against  
   var13[0] = team1_seed - team2_seed
-
+  var14[0] = seed_prob
+  var15[0] = team1_winfrac - team2_winfrac
+  var16[0] = team1_avg_scorediff - team2_avg_scorediff
+  var17[0] = team1_avg_opp_score_for - team2_avg_opp_score_for
+  
+  
   return 1
   
 def Seed(season, team):
