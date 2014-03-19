@@ -7,6 +7,21 @@ if not sys.argv.count('-i') and not sys.argv.count('-b'):
 from array import array
 from ROOT import *
 
+#seed probablity root and associated functions 
+seed_prob_file = TFile('seed_probabilities.root', 'READ') 
+alpha = 0.03
+def SimpleSeedPrediction(seed1, seed2):
+  return 0.5 + alpha*(seed2-seed1)
+
+def HistSeedPrediction(season, seed1, seed2):
+  
+  seed_prob_file  = TFile('seed_probabilities.root','READ')
+  
+  if seed_prob_file.Get('h_games_played_'+season).GetBinContent(seed1, seed2) >= 10:
+    return seed_prob_file.Get('h_seed_winprob_'+season).GetBinContent(seed1, seed2)
+  else:  
+    return SimpleSeedPrediction(seed1,seed2)
+ 
 seasons = map(chr, range(65, 84)) #hardcoded list of seasons from A to S
 
 #get input dataset of tourney results
@@ -84,6 +99,11 @@ out_train.Branch('season_int',season_int, 'season_int/I')
 game_outcome = array( 'i', [0])
 out_train.Branch('game_outcome',game_outcome, 'game_outcome/I')
 
+seed_prob = array( 'f', [0])
+out_train.Branch('seed_prob',seed_prob, 'seed_prob/F')
+
+
+
 n_games = tourney_tree.GetEntries()
 i = 0 
 
@@ -121,6 +141,8 @@ for game in tourney_tree:
     avg_score_against2[0] = team_tree.avg_score_against
     avg_opp_score_for2[0] = team_tree.avg_opp_score_for
     avg_opp_score_against2[0] = team_tree.avg_opp_score_against
+
+    seed_prob[0] = HistSeedPrediction(game.season[0], seed1[0],seed2[0])
 
     game_outcome[0] = (team1[0] == game.wteam)
     
