@@ -9,9 +9,9 @@ parser = OptionParser()
 (options,args) = parser.parse_args()
 
 
-bkg_files = [(ROOT.TFile('/home/clester/mmMVA/mm_train_tourney.root'), 'tourney_results_l')]
+bkg_files = [(ROOT.TFile('mm_train_tourney.root'), 'tourney_results_l')]
 
-sig_files = [(ROOT.TFile.Open('/home/clester/mmMVA/mm_train_tourney.root'), 'tourney_results_w')]
+sig_files = [(ROOT.TFile.Open('mm_train_tourney.root'), 'tourney_results_w')]
 
 def get_tree(tfile,  tree_name):
     tree = tfile.Get(tree_name)                     

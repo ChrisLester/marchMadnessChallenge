@@ -7,6 +7,27 @@ if not sys.argv.count('-i') and not sys.argv.count('-b'):
 from array import array
 from ROOT import *
 
+var0 = array('f',[0]) ; 
+var1 = array('f',[0]) ; 
+var2 = array('f',[0]) ; 
+var3 = array('f',[0]) ; 
+var4 = array('f',[0]) ; 
+var5 = array('f',[0]) ; 
+var6 = array('f',[0]) ; 
+
+reader = TMVA.Reader()
+s = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S']
+reader.AddSpectator("season", var0)
+reader.AddVariable("winfrac1-winfrac2",		var1)
+reader.AddVariable("avg_scorediff1 - avg_scorediff2",		var2)
+reader.AddVariable("avg_opp_score_for1 - avg_opp_score_for2",		var3)
+reader.AddVariable("avg_opp_score_against1- avg_opp_score_against2",		var4)
+reader.AddVariable("avg_score_against1-avg_score_against2",		var5)
+
+for season in s:
+    if season == 'S': continue 
+    reader.BookMVA('BDT_'+season,'./weights/regressionMVA_'+season+'_BDT.weights.xml')
+
 #seed probablity root and associated functions 
 seed_prob_file = TFile('seed_probabilities.root', 'READ') 
 alpha = 0.03
@@ -102,6 +123,9 @@ out_train.Branch('game_outcome',game_outcome, 'game_outcome/I')
 seed_prob = array( 'f', [0])
 out_train.Branch('seed_prob',seed_prob, 'seed_prob/F')
 
+game_prob = array( 'f', [0])
+out_train.Branch('game_prob',game_prob, 'game_prob/F')
+
 
 
 n_games = tourney_tree.GetEntries()
@@ -145,7 +169,16 @@ for game in tourney_tree:
     seed_prob[0] = HistSeedPrediction(game.season[0], seed1[0],seed2[0])
 
     game_outcome[0] = (team1[0] == game.wteam)
-    
+
+
+    var0[0] = season_int[0]
+    var1[0] = winfrac1[0]-winfrac2[0]
+    var2[0] = avg_scorediff1[0] - avg_scorediff2[0]
+    var3[0] = avg_opp_score_for1[0] -avg_opp_score_for2[0]
+    var4[0] = avg_opp_score_against1[0]-avg_opp_score_against2[0]
+    var5[0] = avg_score_against1[0]-avg_score_against2[0]
+
+    game_prob[0] = reader.EvaluateMVA("BDT_"+game.season[0])
     # fill the tree 
     out_train.Fill()
 
